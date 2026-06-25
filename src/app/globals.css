@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #fdfaf3;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg);
+  color: theme("colors.choco.DEFAULT");
+}
+
+::selection {
+  background: theme("colors.caramel.DEFAULT");
+  color: #fff;
+}
+
+/* Slim warm scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: theme("colors.cream.100");
+}
+::-webkit-scrollbar-thumb {
+  background: theme("colors.caramel.light");
+  border-radius: 999px;
+}
+
+@layer components {
+  .container-px {
+    @apply px-5 sm:px-8 lg:px-12;
+  }
+  .section {
+    @apply py-16 md:py-24;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full font-medium transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-choco text-cream-50 px-7 py-3 hover:bg-caramel-dark hover:shadow-soft;
+  }
+  .btn-accent {
+    @apply btn bg-caramel text-white px-7 py-3 hover:bg-caramel-dark hover:shadow-soft;
+  }
+  .btn-outline {
+    @apply btn border border-choco/30 text-choco px-7 py-3 hover:bg-choco hover:text-cream-50;
+  }
+  .btn-sm {
+    @apply px-4 py-2 text-sm;
+  }
+  .eyebrow {
+    @apply inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-caramel-dark;
+  }
+  .card-surface {
+    @apply rounded-3xl bg-white shadow-card;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
