@@ -20,6 +20,11 @@ export const metadata: Metadata = {
   title: "Yummy Bakery — Happiness in Every Bite",
   description:
     "Freshly baked breads, buns, cakes and savoury treats from Yummy Bakery. Order online for delivery or pickup from any of our outlets.",
+  icons: {
+    icon: "/logo/favicon.ico",
+    shortcut: "/logo/favicon.ico",
+    apple: "/logo/favicon.ico",
+  },
 };
 
 export default function RootLayout({

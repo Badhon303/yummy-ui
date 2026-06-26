@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -43,18 +44,16 @@ export default function Header() {
           : "bg-transparent"
       }`}
     >
-      <div className="container-px mx-auto flex max-w-7xl items-center justify-between gap-4 py-4">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-caramel font-display text-xl font-bold text-white">
-            Y
-          </span>
-          <span
-            className={`font-display text-2xl font-bold tracking-tight transition-colors ${
-              solid ? "text-choco" : "text-cream-50"
-            }`}
-          >
-            Yummy
-          </span>
+      <div className="container-px mx-auto flex items-center justify-between gap-4 py-4">
+        <Link href="/" className="relative flex items-center">
+          <Image
+            src="/logo/yummy-black-logo.png"
+            alt="Yummy Bakery"
+            width={140}
+            height={40}
+            className="h-9 w-auto"
+            priority
+          />
         </Link>
 
         <nav className="hidden items-center gap-8 lg:flex">
@@ -64,9 +63,7 @@ export default function Header() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`relative text-sm font-medium transition-colors ${
-                  solid ? "text-choco/80 hover:text-caramel-dark" : "text-cream-50/90 hover:text-white"
-                }`}
+                className="relative text-sm font-medium text-choco/80 transition-colors hover:text-caramel-dark"
               >
                 {link.label}
                 {active && (
@@ -83,11 +80,7 @@ export default function Header() {
         <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={openPicker}
-            className={`hidden items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-medium transition-colors sm:flex ${
-              solid
-                ? "border-choco/15 text-choco hover:border-caramel"
-                : "border-cream-50/30 text-cream-50 hover:border-cream-50"
-            }`}
+            className="hidden items-center gap-1.5 rounded-full border border-choco/15 px-3.5 py-2 text-xs font-medium text-choco transition-colors hover:border-caramel sm:flex"
           >
             <MapPin size={14} className="text-caramel" />
             {selectedOutlet ? selectedOutlet.area : "Select outlet"}
@@ -97,9 +90,7 @@ export default function Header() {
           <button
             onClick={openCart}
             aria-label="Open cart"
-            className={`relative rounded-full p-2.5 transition-colors ${
-              solid ? "text-choco hover:bg-choco/10" : "text-cream-50 hover:bg-white/10"
-            }`}
+            className="relative rounded-full p-2.5 text-choco transition-colors hover:bg-choco/10"
           >
             <ShoppingBag size={20} />
             {totalItems > 0 && (
@@ -112,9 +103,7 @@ export default function Header() {
           <button
             onClick={() => setMobileOpen((v) => !v)}
             aria-label="Toggle menu"
-            className={`rounded-full p-2.5 transition-colors lg:hidden ${
-              solid ? "text-choco hover:bg-choco/10" : "text-cream-50 hover:bg-white/10"
-            }`}
+            className="rounded-full p-2.5 text-choco transition-colors hover:bg-choco/10 lg:hidden"
           >
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
