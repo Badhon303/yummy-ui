@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Facebook, Instagram, Mail, MapPin, Phone, Twitter } from "lucide-react";
 import { useState } from "react";
 import { outlets } from "@/data/outlets";
+import Image from "next/image";
 
 export default function Footer() {
   const [email, setEmail] = useState("");
@@ -16,7 +17,16 @@ export default function Footer() {
           <div>
             <div className="flex items-center gap-2">
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-caramel font-display text-xl font-bold text-white">
-                Y
+                  <Link href="/" className="relative flex items-center">
+          <Image
+            src="/logo/yummy-black-logo.png"
+            alt="Yummy Bakery"
+            width={140}
+            height={40}
+            className="h-9 w-auto"
+            priority
+          />
+        </Link>
               </span>
               <span className="font-display text-2xl font-bold text-cream-50">
                 Yummy

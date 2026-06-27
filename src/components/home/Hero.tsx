@@ -169,7 +169,7 @@ export default function Hero() {
           transition={{ duration: 0.7, delay: 0.1 }}
           className="mt-3 font-display text-[clamp(2.25rem,8vw,6rem)] font-bold leading-[0.95] text-choco sm:text-[clamp(2.5rem,7vw,5.5rem)] lg:text-[clamp(3rem,6vw,6rem)]"
         >
-          Sweet Vibes
+          Yummy Vibes
         </motion.h1>
         <motion.h1
           initial={{ opacity: 0, y: 30 }}

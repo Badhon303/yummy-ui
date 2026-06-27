@@ -44,7 +44,7 @@ export default function Header() {
           : "bg-transparent"
       }`}
     >
-      <div className="container-px mx-auto flex items-center justify-between gap-4 py-4">
+      <div className="container-px mx-auto flex max-w-7xl items-center justify-between gap-4 py-4">
         <Link href="/" className="relative flex items-center">
           <Image
             src="/logo/yummy-black-logo.png"
