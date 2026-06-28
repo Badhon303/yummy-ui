@@ -3,12 +3,11 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Clock, MapPin } from "lucide-react";
-import { outlets } from "@/data/outlets";
 import { useOutlet } from "@/context/OutletContext";
 import SectionHeading from "@/components/ui/SectionHeading";
 
 export default function OutletsTeaser() {
-  const { setOutlet, selectedOutlet } = useOutlet();
+  const { outlets, setOutlet, selectedOutlet } = useOutlet();
 
   return (
     <section className="section container-px mx-auto max-w-7xl">

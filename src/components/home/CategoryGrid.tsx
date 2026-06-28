@@ -4,10 +4,24 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
-import { categories } from "@/data/categories";
+import { useEffect, useState } from "react";
+import { getCategories } from "@/lib/api";
 import SectionHeading from "@/components/ui/SectionHeading";
+import type { Category } from "@/lib/types";
 
 export default function CategoryGrid() {
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    getCategories().then((c) => {
+      if (mounted) setCategories(c);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return (
     <section className="section container-px mx-auto max-w-7xl">
       <SectionHeading

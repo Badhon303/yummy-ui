@@ -4,11 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Clock, MapPin, Phone, Truck, Store } from "lucide-react";
-import { outlets } from "@/data/outlets";
 import { useOutlet } from "@/context/OutletContext";
 
 export default function OutletsClient() {
-  const { selectedOutlet, setOutlet } = useOutlet();
+  const { outlets, selectedOutlet, setOutlet } = useOutlet();
 
   return (
     <section className="section container-px mx-auto max-w-7xl">

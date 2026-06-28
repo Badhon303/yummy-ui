@@ -2,12 +2,11 @@
 
 import { motion } from "framer-motion";
 import { Search, SlidersHorizontal } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { products } from "@/data/products";
-import { categories } from "@/data/categories";
+import { getCategories, getProducts } from "@/lib/api";
 import ProductCard from "@/components/ProductCard";
-import type { CategorySlug } from "@/lib/types";
+import type { CategorySlug, Product, Category } from "@/lib/types";
 
 type SortKey = "popular" | "price-asc" | "price-desc" | "name";
 
@@ -22,11 +21,27 @@ export default function ShopClient() {
   const params = useSearchParams();
   const initialCategory = (params.get("category") as CategorySlug) || "all";
 
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState<CategorySlug | "all">(
     initialCategory
   );
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("popular");
+
+  useEffect(() => {
+    let mounted = true;
+    Promise.all([getProducts(), getCategories()]).then(([p, c]) => {
+      if (!mounted) return;
+      setProducts(p);
+      setCategories(c);
+      setLoading(false);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const filtered = useMemo(() => {
     let list = [...products];
@@ -53,7 +68,7 @@ export default function ShopClient() {
         list.sort((a, b) => b.reviewCount - a.reviewCount);
     }
     return list;
-  }, [category, query, sort]);
+  }, [category, query, sort, products]);
 
   const filters: { key: CategorySlug | "all"; label: string }[] = [
     { key: "all", label: "All" },
@@ -110,7 +125,9 @@ export default function ShopClient() {
         Showing {filtered.length} item{filtered.length !== 1 && "s"}
       </p>
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="mt-16 text-center text-choco/60">Loading bakes...</div>
+      ) : filtered.length === 0 ? (
         <div className="mt-16 text-center text-choco/60">
           No bakes match your search. Try a different filter.
         </div>

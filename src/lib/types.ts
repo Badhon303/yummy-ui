@@ -78,6 +78,14 @@ export interface Testimonial {
   rating: number;
 }
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role?: string;
+}
+
 export type FulfilmentType = "delivery" | "pickup";
 
 export interface GuestDetails {

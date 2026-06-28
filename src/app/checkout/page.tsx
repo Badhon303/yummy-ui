@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowRight, MapPin, Store, Truck } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { useOutlet } from "@/context/OutletContext";
+import { useAuth } from "@/context/AuthContext";
 import { DELIVERY_FEE } from "@/data/outlets";
 import { formatTaka } from "@/lib/format";
 import { placeOrder } from "@/lib/api";
@@ -18,6 +19,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { items, subtotal, totalItems, clearCart } = useCart();
   const { selectedOutlet, outlets, setOutlet, openPicker } = useOutlet();
+  const { user, openAuth } = useAuth();
 
   const [fulfilment, setFulfilment] = useState<FulfilmentType>("delivery");
   const [submitting, setSubmitting] = useState(false);
@@ -30,6 +32,17 @@ export default function CheckoutPage() {
     notes: "",
   });
 
+  useEffect(() => {
+    if (user) {
+      setGuest((g) => ({
+        ...g,
+        fullName: user.name || g.fullName,
+        email: user.email || g.email,
+        phone: user.phone || g.phone,
+      }));
+    }
+  }, [user]);
+
   const deliveryFee = fulfilment === "delivery" ? DELIVERY_FEE : 0;
   const total = subtotal + deliveryFee;
 
@@ -37,6 +50,7 @@ export default function CheckoutPage() {
     setGuest((g) => ({ ...g, [key]: value }));
 
   const canSubmit =
+    user &&
     items.length > 0 &&
     selectedOutlet &&
     guest.fullName.trim() &&
@@ -45,7 +59,7 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit || !selectedOutlet) return;
+    if (!canSubmit || !selectedOutlet || !user) return;
     setSubmitting(true);
     const order = await placeOrder({
       items,
@@ -56,6 +70,7 @@ export default function CheckoutPage() {
       subtotal,
       deliveryFee,
       total,
+      user,
     });
     sessionStorage.setItem("yummy.lastOrder", JSON.stringify(order));
     clearCart();
@@ -79,8 +94,8 @@ export default function CheckoutPage() {
   return (
     <>
       <PageHeader
-        title="Guest checkout"
-        description="No account required. Just a few details and your order is on its way."
+        title="Checkout"
+        description="Review your basket, choose delivery or pickup, and place your order."
         crumbs={[{ label: "Basket", href: "/cart" }, { label: "Checkout" }]}
       />
 
@@ -89,6 +104,31 @@ export default function CheckoutPage() {
         className="section container-px mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1fr_380px]"
       >
         <div className="space-y-8">
+          {!user && (
+            <div className="rounded-3xl bg-white p-6 shadow-card">
+              <h2 className="font-display text-xl text-choco">Sign in to continue</h2>
+              <p className="mt-2 text-sm text-choco/60">
+                To place an order we need an account so we can save your address and order history.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => openAuth("login")}
+                  className="btn-accent"
+                >
+                  Sign in
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openAuth("register")}
+                  className="btn-outline border-choco/15 text-choco hover:bg-choco hover:text-white"
+                >
+                  Create account
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Fulfilment */}
           <div className="rounded-3xl bg-white p-6 shadow-card">
             <h2 className="font-display text-xl text-choco">How would you like it?</h2>

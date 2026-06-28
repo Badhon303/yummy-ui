@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
-import { products } from "@/data/products";
-import { getProductBySlug, getRelatedProducts } from "@/lib/api";
+import { getProductBySlug, getProducts, getRelatedProducts } from "@/lib/api";
 import ProductDetail from "@/components/product/ProductDetail";
 import ProductCard from "@/components/ProductCard";
 import SectionHeading from "@/components/ui/SectionHeading";
 
-export function generateStaticParams() {
+export async function generateStaticParams() {
+  const products = await getProducts();
   return products.map((p) => ({ slug: p.slug }));
 }
 

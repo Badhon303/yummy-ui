@@ -4,10 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, MapPin, Menu, ShoppingBag, X } from "lucide-react";
+import { ChevronDown, MapPin, Menu, ShoppingBag, User, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { useOutlet } from "@/context/OutletContext";
+import { useAuth } from "@/context/AuthContext";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -21,6 +22,7 @@ export default function Header() {
   const pathname = usePathname();
   const { totalItems, openCart } = useCart();
   const { selectedOutlet, openPicker } = useOutlet();
+  const { user, logout, openAuth } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -99,6 +101,29 @@ export default function Header() {
               </span>
             )}
           </button>
+
+          {user ? (
+            <div className="hidden items-center gap-2 sm:flex">
+              <span className="max-w-[120px] truncate text-sm font-medium text-choco">
+                {user.name}
+              </span>
+              <button
+                onClick={() => logout()}
+                className="rounded-full p-2.5 text-choco transition-colors hover:bg-choco/10"
+                aria-label="Logout"
+              >
+                <User size={20} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => openAuth("login")}
+              className="hidden items-center gap-1.5 rounded-full border border-choco/15 px-3.5 py-2 text-xs font-medium text-choco transition-colors hover:border-caramel sm:flex"
+            >
+              <User size={14} />
+              Login
+            </button>
+          )}
 
           <button
             onClick={() => setMobileOpen((v) => !v)}

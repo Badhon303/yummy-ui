@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { Facebook, Instagram, Mail, MapPin, Phone, Twitter } from "lucide-react";
 import { useState } from "react";
-import { outlets } from "@/data/outlets";
+import { useOutlet } from "@/context/OutletContext";
 import Image from "next/image";
 
 export default function Footer() {
   const [email, setEmail] = useState("");
   const [done, setDone] = useState(false);
+  const { outlets } = useOutlet();
 
   return (
     <footer className="bg-choco text-cream-50/80">

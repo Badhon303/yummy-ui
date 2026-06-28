@@ -1,12 +1,10 @@
 import { Quote } from "lucide-react";
-import { getTestimonials } from "@/lib/api";
+import { testimonials } from "@/data/testimonials";
 import SectionHeading from "@/components/ui/SectionHeading";
 import StarRating from "@/components/ui/StarRating";
 import Reveal from "@/components/ui/Reveal";
 
-export default async function Testimonials() {
-  const testimonials = await getTestimonials();
-
+export default function Testimonials() {
   return (
     <section className="section bg-cream-100">
       <div className="container-px mx-auto max-w-7xl">

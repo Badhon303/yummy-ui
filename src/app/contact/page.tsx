@@ -3,12 +3,13 @@
 import { motion } from "framer-motion";
 import { Clock, Mail, MapPin, Phone, Send } from "lucide-react";
 import { useState } from "react";
-import { outlets } from "@/data/outlets";
+import { useOutlet } from "@/context/OutletContext";
 import PageHeader from "@/components/PageHeader";
 
 export default function ContactPage() {
   const [sent, setSent] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const { outlets } = useOutlet();
 
   return (
     <>

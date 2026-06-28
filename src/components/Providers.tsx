@@ -7,6 +7,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import CartDrawer from "@/components/layout/CartDrawer";
 import OutletPicker from "@/components/layout/OutletPicker";
+import AuthModal from "@/components/layout/AuthModal";
 import Toast from "@/components/layout/Toast";
 
 export default function Providers({ children }: { children: ReactNode }) {
@@ -18,6 +19,7 @@ export default function Providers({ children }: { children: ReactNode }) {
         <Footer />
         <CartDrawer />
         <OutletPicker />
+        <AuthModal />
         <Toast />
       </CartProvider>
     </OutletProvider>
