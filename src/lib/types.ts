@@ -78,12 +78,31 @@ export interface Testimonial {
   rating: number;
 }
 
+export interface UserAddress {
+  id?: string;
+  recipientName: string;
+  phone: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  area?: string;
+  postalCode?: string;
+  isDefault?: boolean;
+}
+
 export interface User {
   id: string;
   name: string;
   email: string;
   phone?: string;
   role?: string;
+  addresses?: UserAddress[];
+}
+
+export interface ProfileUpdateInput {
+  name?: string;
+  phone?: string;
+  addresses?: UserAddress[];
 }
 
 export type FulfilmentType = "delivery" | "pickup";
@@ -107,5 +126,15 @@ export interface Order {
   subtotal: number;
   deliveryFee: number;
   total: number;
+  placedAt: string;
+}
+
+export interface OrderSummary {
+  id: string;
+  orderNumber: string;
+  status: string;
+  type: string;
+  total: number;
+  itemCount: number;
   placedAt: string;
 }

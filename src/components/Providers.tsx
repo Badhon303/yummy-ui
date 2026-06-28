@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { OutletProvider } from "@/context/OutletContext";
 import { CartProvider } from "@/context/CartContext";
+import { WishlistProvider } from "@/context/WishlistContext";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import CartDrawer from "@/components/layout/CartDrawer";
@@ -14,13 +15,15 @@ export default function Providers({ children }: { children: ReactNode }) {
   return (
     <OutletProvider>
       <CartProvider>
-        <Header />
-        <main className="min-h-screen">{children}</main>
-        <Footer />
-        <CartDrawer />
-        <OutletPicker />
-        <AuthModal />
-        <Toast />
+        <WishlistProvider>
+          <Header />
+          <main className="min-h-screen">{children}</main>
+          <Footer />
+          <CartDrawer />
+          <OutletPicker />
+          <AuthModal />
+          <Toast />
+        </WishlistProvider>
       </CartProvider>
     </OutletProvider>
   );

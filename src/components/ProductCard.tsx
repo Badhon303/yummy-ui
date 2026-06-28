@@ -3,19 +3,22 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Plus, Star } from "lucide-react";
+import { Heart, Plus, Star } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { useCart } from "@/context/CartContext";
 import { useOutlet } from "@/context/OutletContext";
+import { useWishlist } from "@/context/WishlistContext";
 import { getProductPrice, isAvailableAt } from "@/lib/api";
 import { formatTaka } from "@/lib/format";
 
 export default function ProductCard({ product }: { product: Product }) {
   const { addItem } = useCart();
   const { selectedOutlet } = useOutlet();
+  const { has: inWishlist, toggle: toggleWishlist } = useWishlist();
   const outletId = selectedOutlet?.id;
   const price = getProductPrice(product, outletId);
   const available = isAvailableAt(product, outletId);
+  const wishlisted = inWishlist(product.id);
 
   return (
     <motion.div
@@ -54,6 +57,28 @@ export default function ProductCard({ product }: { product: Product }) {
           </div>
         )}
       </Link>
+
+      <button
+        type="button"
+        onClick={() =>
+          toggleWishlist({
+            productId: product.id,
+            name: product.name,
+            slug: product.slug,
+            image: product.image,
+            price,
+            category: product.category,
+          })
+        }
+        aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+        aria-pressed={wishlisted}
+        className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-choco shadow-soft backdrop-blur transition-all hover:scale-110 hover:bg-white"
+      >
+        <Heart
+          size={17}
+          className={wishlisted ? "fill-berry text-berry" : "text-choco/60"}
+        />
+      </button>
 
       <div className="flex flex-1 flex-col p-4">
         <span className="text-[11px] uppercase tracking-wider text-caramel-dark">

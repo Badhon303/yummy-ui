@@ -2,12 +2,20 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { Check } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
 
 export default function Toast() {
-  const { lastToast } = useCart();
+  const { lastToast: cartToast } = useCart();
+  const { lastToast: wishlistToast } = useWishlist();
   const [visible, setVisible] = useState(false);
+
+  const lastToast = useMemo(() => {
+    if (!cartToast) return wishlistToast;
+    if (!wishlistToast) return cartToast;
+    return cartToast.id >= wishlistToast.id ? cartToast : wishlistToast;
+  }, [cartToast, wishlistToast]);
 
   useEffect(() => {
     if (!lastToast) return;

@@ -8,6 +8,7 @@ import type {
   Outlet,
   Testimonial,
   Order,
+  OrderSummary,
   CartItem,
   FulfilmentType,
   GuestDetails,
@@ -175,18 +176,6 @@ export async function placeOrder(input: PlaceOrderInput): Promise<Order> {
     };
   }
 
-  const address = await apiFetch<{ id: string }>("/api/addresses", {
-    method: "POST",
-    body: JSON.stringify({
-      user: input.user.id,
-      recipientName: input.guest.fullName,
-      phone: input.guest.phone,
-      addressLine1: input.guest.address || "N/A",
-      city: input.guest.area || "Dhaka",
-      area: input.guest.area || "",
-    }),
-  });
-
   const order = await apiFetch<{
     id: string;
     orderNumber: string;
@@ -198,7 +187,13 @@ export async function placeOrder(input: PlaceOrderInput): Promise<Order> {
       guestEmail: input.guest.email,
       guestName: input.guest.fullName,
       branch: input.outletId,
-      shippingAddress: address.id,
+      shippingAddress: {
+        recipientName: input.guest.fullName,
+        phone: input.guest.phone,
+        addressLine1: input.guest.address || "N/A",
+        city: input.guest.area || "Dhaka",
+        area: input.guest.area || "",
+      },
       orderType: input.fulfilment,
       paymentMethod: "cod",
       paymentStatus: "unpaid",
@@ -228,6 +223,36 @@ export async function placeOrder(input: PlaceOrderInput): Promise<Order> {
     total: input.total,
     placedAt: order.createdAt || new Date().toISOString(),
   };
+}
+
+interface BackendOrder {
+  id: string;
+  orderNumber: string;
+  orderStatus: string;
+  orderType: string;
+  totalAmount: number;
+  items?: { quantity: number }[];
+  createdAt: string;
+}
+
+/** Fetch the signed-in user's orders. Returns [] when the API is disabled. */
+export async function getMyOrders(userId: string): Promise<OrderSummary[]> {
+  return tryApi(async () => {
+    const data = await apiFetch<PaginatedDocs<BackendOrder>>(
+      `/api/orders?limit=50&depth=0&sort=-createdAt&where[user][equals]=${encodeURIComponent(
+        userId
+      )}`
+    );
+    return data.docs.map((o) => ({
+      id: o.id,
+      orderNumber: o.orderNumber,
+      status: o.orderStatus,
+      type: o.orderType,
+      total: o.totalAmount,
+      itemCount: (o.items ?? []).reduce((n, i) => n + (i.quantity || 0), 0),
+      placedAt: o.createdAt,
+    }));
+  }, []);
 }
 
 export { DELIVERY_FEE };

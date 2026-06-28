@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { apiFetch, ApiError } from "@/lib/api-client";
-import type { User } from "@/lib/types";
+import type { User, ProfileUpdateInput } from "@/lib/types";
 
 export type AuthMode = "login" | "register";
 
@@ -13,6 +13,8 @@ interface AuthContextValue {
   register: (input: RegisterInput) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
+  updateProfile: (input: ProfileUpdateInput) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   isAuthOpen: boolean;
   authMode: AuthMode;
   openAuth: (mode?: AuthMode) => void;
@@ -68,11 +70,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   const login = useCallback(async (email: string, password: string) => {
-    await apiFetch("/api/users/login", {
+    const data = await apiFetch<{ user?: User }>("/api/users/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
-    await refresh();
+    if (data.user) {
+      setUser(data.user);
+    } else {
+      await refresh();
+    }
   }, [refresh]);
 
   const register = useCallback(async (input: RegisterInput) => {
@@ -88,8 +94,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await login(input.email, input.password);
   }, [login]);
 
+  const updateProfile = useCallback(
+    async (input: ProfileUpdateInput) => {
+      if (!user) throw new Error("You must be signed in to update your profile.");
+      const data = await apiFetch<{ doc?: User } & Partial<User>>(
+        `/api/users/${user.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(input),
+        }
+      );
+      const updated = (data as { doc?: User }).doc;
+      if (updated) {
+        setUser(updated);
+      } else {
+        await refresh();
+      }
+    },
+    [user, refresh]
+  );
+
+  const changePassword = useCallback(
+    async (currentPassword: string, newPassword: string) => {
+      if (!user) throw new Error("You must be signed in to change your password.");
+      await login(user.email, currentPassword);
+      await apiFetch(`/api/users/${user.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ password: newPassword }),
+      });
+    },
+    [user, login]
+  );
+
   const logout = useCallback(async () => {
-    await apiFetch("/api/users/logout", { method: "POST" });
+    try {
+      await apiFetch("/api/users/logout", { method: "POST" });
+    } catch {
+      // ignore API errors — still clear local state
+    }
     setUser(null);
   }, []);
 
@@ -102,6 +144,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         logout,
         refresh,
+        updateProfile,
+        changePassword,
         isAuthOpen,
         authMode,
         openAuth,
