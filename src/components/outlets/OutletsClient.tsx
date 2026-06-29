@@ -21,7 +21,7 @@ export default function OutletsClient() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
               transition={{ duration: 0.5, delay: (i % 2) * 0.1 }}
-              className={`overflow-hidden rounded-3xl border bg-white shadow-card ${
+              className={`flex h-full flex-col overflow-hidden rounded-3xl border bg-white shadow-card ${
                 active ? "border-caramel" : "border-transparent"
               }`}
             >
@@ -85,7 +85,7 @@ export default function OutletsClient() {
                   </div>
                 </div>
               </div>
-              <div className="relative h-44 w-full bg-cream-100">
+              <div className="relative min-h-0 flex-1 w-full bg-cream-100">
                 <iframe
                   title={`Map of ${o.name}`}
                   className="h-full w-full border-0"
