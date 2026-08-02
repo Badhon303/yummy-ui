@@ -1,13 +1,11 @@
 import { notFound } from "next/navigation";
-import { getProductBySlug, getProducts, getRelatedProducts } from "@/lib/api";
+import { getProductBySlug, getRelatedProducts } from "@/lib/api";
 import ProductDetail from "@/components/product/ProductDetail";
 import ProductCard from "@/components/ProductCard";
 import SectionHeading from "@/components/ui/SectionHeading";
 
-export async function generateStaticParams() {
-  const products = await getProducts();
-  return products.map((p) => ({ slug: p.slug }));
-}
+export const dynamic = "force-dynamic";
+export const dynamicParams = true;
 
 export async function generateMetadata({
   params,
