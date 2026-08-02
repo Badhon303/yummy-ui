@@ -8,6 +8,8 @@ import OutletsTeaser from "@/components/home/OutletsTeaser";
 import Testimonials from "@/components/home/Testimonials";
 import GallerySection from "@/components/home/GallerySection";
 
+export const dynamic = "force-dynamic";
+
 export default function HomePage() {
   return (
     <>
