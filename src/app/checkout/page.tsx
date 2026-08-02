@@ -11,21 +11,23 @@ import { useOutlet } from "@/context/OutletContext";
 import { useAuth } from "@/context/AuthContext";
 import { DELIVERY_FEE } from "@/data/outlets";
 import { formatTaka } from "@/lib/format";
-import { placeOrder, submitBanglaQrPayment } from "@/lib/api";
-import type { FulfilmentType, GuestDetails, PaymentMethod } from "@/lib/types";
+import { placeOrder, submitBanglaQrPayment, getProductsForOutlet, isAvailableAt } from "@/lib/api";
+import type { FulfilmentType, GuestDetails, PaymentMethod, Product } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, subtotal, totalItems, clearCart } = useCart();
-  const { selectedOutlet, outlets, setOutlet, openPicker } = useOutlet();
-  const { user, openAuth } = useAuth();
+  const { selectedOutlet } = useOutlet();
+  const { user, isLoading: authLoading, openAuth } = useAuth();
 
   const [fulfilment, setFulfilment] = useState<FulfilmentType>("delivery");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod");
   const [banglaQrRef, setBanglaQrRef] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [paymentError, setPaymentError] = useState("");
+  const [outletProducts, setOutletProducts] = useState<Product[]>([]);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [guest, setGuest] = useState<GuestDetails>({
     fullName: "",
     phone: "",
@@ -46,6 +48,26 @@ export default function CheckoutPage() {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (!selectedOutlet) {
+      setOutletProducts([]);
+      return;
+    }
+    setAvailabilityLoading(true);
+    getProductsForOutlet(selectedOutlet.id)
+      .then(setOutletProducts)
+      .catch(() => setOutletProducts([]))
+      .finally(() => setAvailabilityLoading(false));
+  }, [selectedOutlet]);
+
+  const unavailableItems = items.filter((item) => {
+    if (!selectedOutlet) return false;
+    const product = outletProducts.find((p) => p.id === item.productId);
+    if (!product) return true;
+    return !isAvailableAt(product, selectedOutlet.id);
+  });
+  const hasUnavailableItems = unavailableItems.length > 0;
+
   const deliveryFee = fulfilment === "delivery" ? DELIVERY_FEE : 0;
   const total = subtotal + deliveryFee;
 
@@ -53,17 +75,20 @@ export default function CheckoutPage() {
     setGuest((g) => ({ ...g, [key]: value }));
 
   const canSubmit =
-    user &&
+    !authLoading &&
     items.length > 0 &&
     selectedOutlet &&
+    !hasUnavailableItems &&
+    !availabilityLoading &&
     guest.fullName.trim() &&
     guest.phone.trim() &&
     (fulfilment === "pickup" || guest.address?.trim()) &&
+    (user || guest.email.trim()) &&
     (paymentMethod !== "bangla_qr" || banglaQrRef.trim());
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit || !selectedOutlet || !user) return;
+    if (!canSubmit || !selectedOutlet) return;
     setSubmitting(true);
     setPaymentError("");
     try {
@@ -76,7 +101,7 @@ export default function CheckoutPage() {
         subtotal,
         deliveryFee,
         total,
-        user,
+        user: user ?? undefined,
         paymentMethod,
       });
 
@@ -126,26 +151,17 @@ export default function CheckoutPage() {
         <div className="space-y-8">
           {!user && (
             <div className="rounded-3xl bg-white p-6 shadow-card">
-              <h2 className="font-display text-xl text-choco">Sign in to continue</h2>
+              <h2 className="font-display text-xl text-choco">Checkout as a guest</h2>
               <p className="mt-2 text-sm text-choco/60">
-                To place an order we need an account so we can save your address and order history.
+                No account is needed. Enter your contact details below to place your order, or sign in to save it to your order history.
               </p>
-              <div className="mt-4 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => openAuth("login")}
-                  className="btn-accent"
-                >
-                  Sign in
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openAuth("register")}
-                  className="btn-outline border-choco/15 text-choco hover:bg-choco hover:text-white"
-                >
-                  Create account
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => openAuth("login")}
+                className="btn-outline mt-4 border-choco/15 text-choco hover:bg-choco hover:text-white"
+              >
+                Sign in instead
+              </button>
             </div>
           )}
 
@@ -179,38 +195,21 @@ export default function CheckoutPage() {
 
           {/* Outlet */}
           <div className="rounded-3xl bg-white p-6 shadow-card">
-            <div className="flex items-center justify-between">
-              <h2 className="font-display text-xl text-choco">
-                {fulfilment === "pickup" ? "Pickup outlet" : "Serving outlet"}
-              </h2>
-              <button
-                type="button"
-                onClick={openPicker}
-                className="text-sm font-medium text-caramel-dark hover:underline"
-              >
-                Change
-              </button>
-            </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {outlets.map((o) => (
-                <button
-                  type="button"
-                  key={o.id}
-                  onClick={() => setOutlet(o.id)}
-                  className={`rounded-2xl border p-4 text-left transition-colors ${
-                    selectedOutlet?.id === o.id
-                      ? "border-caramel bg-cream-100"
-                      : "border-choco/15 hover:border-caramel"
-                  }`}
-                >
-                  <p className="font-medium text-choco">{o.name}</p>
-                  <p className="mt-1 flex items-start gap-1 text-xs text-choco/55">
-                    <MapPin size={12} className="mt-0.5 shrink-0" />
-                    {o.address}
-                  </p>
-                </button>
-              ))}
-            </div>
+            <h2 className="font-display text-xl text-choco">
+              {fulfilment === "pickup" ? "Pickup outlet" : "Serving outlet"}
+            </h2>
+            {selectedOutlet && (
+              <div className="mt-4 rounded-2xl border border-caramel bg-cream-100 p-4">
+                <p className="font-medium text-choco">{selectedOutlet.name}</p>
+                <p className="mt-1 flex items-start gap-1 text-xs text-choco/55">
+                  <MapPin size={12} className="mt-0.5 shrink-0" />
+                  {selectedOutlet.address}
+                </p>
+              </div>
+            )}
+            <p className="mt-3 text-xs text-choco/55">
+              Your outlet is selected before checkout so product availability and stock remain consistent while you place your order.
+            </p>
           </div>
 
           {/* Contact */}
@@ -219,7 +218,7 @@ export default function CheckoutPage() {
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <Field label="Full name *" value={guest.fullName} onChange={(v) => update("fullName", v)} placeholder="e.g. Rahim Uddin" />
               <Field label="Phone *" value={guest.phone} onChange={(v) => update("phone", v)} placeholder="01XXXXXXXXX" type="tel" />
-              <Field label="Email" value={guest.email} onChange={(v) => update("email", v)} placeholder="you@email.com" type="email" className="sm:col-span-2" />
+              <Field label={`Email${!user ? " *" : ""}`} value={guest.email} onChange={(v) => update("email", v)} placeholder="you@email.com" type="email" className="sm:col-span-2" />
               {fulfilment === "delivery" && (
                 <>
                   <Field label="Delivery address *" value={guest.address || ""} onChange={(v) => update("address", v)} placeholder="House, road, area" className="sm:col-span-2" />
@@ -324,20 +323,28 @@ export default function CheckoutPage() {
         <aside className="h-fit rounded-3xl bg-cream-100 p-6 lg:sticky lg:top-28">
           <h2 className="font-display text-xl text-choco">Order summary</h2>
           <ul className="mt-4 space-y-3">
-            {items.map((item) => (
-              <li key={item.key} className="flex items-center gap-3">
-                <div className="relative h-12 w-12 overflow-hidden rounded-xl">
-                  <Image src={item.image} alt={item.name} fill sizes="48px" className="object-cover" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-choco">{item.name}</p>
-                  <p className="text-xs text-choco/55">Qty {item.quantity}</p>
-                </div>
-                <span className="text-sm text-choco">
-                  {formatTaka(item.unitPrice * item.quantity)}
-                </span>
-              </li>
-            ))}
+            {items.map((item) => {
+              const isUnavailable = unavailableItems.some((u) => u.key === item.key);
+              return (
+                <li key={item.key} className={`flex items-center gap-3 ${isUnavailable ? "opacity-60" : ""}`}>
+                  <div className="relative h-12 w-12 overflow-hidden rounded-xl">
+                    <Image src={item.image} alt={item.name} fill sizes="48px" className="object-cover" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-choco">{item.name}</p>
+                    <p className="text-xs text-choco/55">
+                      Qty {item.quantity}
+                      {isUnavailable && (
+                        <span className="ml-1 text-berry">· Not available at this outlet</span>
+                      )}
+                    </p>
+                  </div>
+                  <span className="text-sm text-choco">
+                    {formatTaka(item.unitPrice * item.quantity)}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
           <dl className="mt-5 space-y-2.5 border-t border-choco/15 pt-4 text-sm">
             <div className="flex justify-between text-choco/70">
@@ -370,6 +377,11 @@ export default function CheckoutPage() {
           {!selectedOutlet && (
             <p className="mt-3 text-center text-xs text-berry">
               Please select an outlet to continue.
+            </p>
+          )}
+          {hasUnavailableItems && (
+            <p className="mt-3 text-center text-xs text-berry">
+              {unavailableItems.length} item{unavailableItems.length > 1 ? "s" : ""} not available at {selectedOutlet?.name}. Remove {unavailableItems.length > 1 ? "them" : "it"} from your basket or choose a different outlet.
             </p>
           )}
           <p className="mt-3 text-center text-xs text-choco/50">

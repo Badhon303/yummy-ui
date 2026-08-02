@@ -193,7 +193,7 @@ export async function getProductsForOutlet(outletId: string): Promise<Product[]>
           ? doc.product
           : doc;
       const product = mapBackendProduct(productDoc);
-      if (doc.isAvailable === false) {
+      if (doc.isAvailable === false || Number(doc.stockQuantity) <= 0) {
         product.unavailableAt = [
           ...(product.unavailableAt ?? []),
           outletId,
@@ -247,11 +247,11 @@ export interface PlaceOrderInput {
   subtotal: number;
   deliveryFee: number;
   total: number;
-  user: User;
+  user?: User;
   paymentMethod: PaymentMethod;
 }
 
-/** Create an order in the backend. Requires the customer to be logged in. */
+/** Create an order in the backend for a signed-in customer or guest. */
 export async function placeOrder(input: PlaceOrderInput): Promise<Order> {
   if (!API_ENABLED) {
     await delay(600);
@@ -270,7 +270,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<Order> {
   }>("/api/orders", {
     method: "POST",
     body: JSON.stringify({
-      user: toBackendId(input.user.id),
+      ...(input.user ? { user: toBackendId(input.user.id) } : {}),
       guestEmail: input.guest.email,
       guestName: input.guest.fullName,
       branch: toBackendId(input.outletId),
