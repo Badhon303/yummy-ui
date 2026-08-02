@@ -659,7 +659,7 @@ function BillingTab() {
     <div className="rounded-3xl bg-cream-100 p-8 text-center">
       <h2 className="font-display text-2xl text-choco">Billing</h2>
       <p className="mx-auto mt-2 max-w-md text-choco/60">
-        We currently accept Cash on Delivery, bKash, Nagad and card payments at
+        We currently accept Cash on Delivery/Pickup and Bangla QR payments at
         checkout. Saved payment methods are coming soon.
       </p>
       <Link href="/shop" className="btn-accent mt-6">

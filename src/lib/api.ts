@@ -13,6 +13,7 @@ import type {
   FulfilmentType,
   GuestDetails,
   User,
+  PaymentMethod,
 } from "@/lib/types";
 import { apiFetch, PaginatedDocs } from "@/lib/api-client";
 import {
@@ -40,7 +41,7 @@ async function tryApi<T>(fetcher: () => Promise<T>, fallback: T): Promise<T> {
 export async function getProducts(): Promise<Product[]> {
   return tryApi(async () => {
     const data = await apiFetch<PaginatedDocs<unknown>>(
-      "/api/products?limit=200&depth=1"
+      "/api/products?limit=200&depth=2"
     );
     return data.docs.map(mapBackendProduct);
   }, mockProducts);
@@ -49,7 +50,7 @@ export async function getProducts(): Promise<Product[]> {
 export async function getProductBySlug(slug: string): Promise<Product | undefined> {
   return tryApi(async () => {
     const data = await apiFetch<PaginatedDocs<unknown>>(
-      `/api/products?depth=1&where[slug][equals]=${encodeURIComponent(slug)}`
+      `/api/products?depth=2&where[slug][equals]=${encodeURIComponent(slug)}`
     );
     const doc = data.docs[0];
     return doc ? mapBackendProduct(doc) : undefined;
@@ -68,7 +69,7 @@ export async function getProductsByCategory(category: string): Promise<Product[]
     const categoryId = await getCategoryIdBySlug(category);
     if (!categoryId) return [];
     const data = await apiFetch<PaginatedDocs<unknown>>(
-      `/api/products?limit=200&depth=1&where[category][equals]=${encodeURIComponent(
+      `/api/products?limit=200&depth=2&where[category][equals]=${encodeURIComponent(
         categoryId
       )}`
     );
@@ -79,7 +80,7 @@ export async function getProductsByCategory(category: string): Promise<Product[]
 export async function getBestsellers(): Promise<Product[]> {
   return tryApi(async () => {
     const data = await apiFetch<PaginatedDocs<unknown>>(
-      "/api/products?limit=20&depth=1&where[isBestseller][equals]=true"
+      "/api/products?limit=20&depth=2&where[isBestseller][equals]=true"
     );
     return data.docs.map(mapBackendProduct);
   }, mockProducts.filter((p) => p.isBestseller));
@@ -88,7 +89,7 @@ export async function getBestsellers(): Promise<Product[]> {
 export async function getNewArrivals(): Promise<Product[]> {
   return tryApi(async () => {
     const data = await apiFetch<PaginatedDocs<unknown>>(
-      "/api/products?limit=20&depth=1&where[isNew][equals]=true"
+      "/api/products?limit=20&depth=2&where[isNew][equals]=true"
     );
     return data.docs.map(mapBackendProduct);
   }, mockProducts.filter((p) => p.isNew));
@@ -102,7 +103,7 @@ export async function getRelatedProducts(
     const categoryId = await getCategoryIdBySlug(product.category);
     if (!categoryId) return [];
     const data = await apiFetch<PaginatedDocs<unknown>>(
-      `/api/products?limit=${limit}&depth=1&where[and][0][category][equals]=${encodeURIComponent(
+      `/api/products?limit=${limit}&depth=2&where[and][0][category][equals]=${encodeURIComponent(
         categoryId
       )}&where[and][1][id][not_equals]=${encodeURIComponent(product.id)}`
     );
@@ -130,6 +131,79 @@ export async function getOutlets(): Promise<Outlet[]> {
   }, mockOutlets);
 }
 
+export interface BranchProduct {
+  id: string;
+  branch: string | { id: string };
+  product: string | { id: string };
+  stockQuantity: number;
+  isAvailable: boolean;
+}
+
+/** Fetch branch-product overrides for a specific outlet. */
+export async function getBranchProductsForOutlet(outletId: string): Promise<BranchProduct[]> {
+  return tryApi(async () => {
+    const data = await apiFetch<PaginatedDocs<unknown>>(
+      `/api/branch-products?limit=500&depth=0&where[branch][equals]=${encodeURIComponent(
+        outletId
+      )}`
+    );
+    return data.docs as BranchProduct[];
+  }, []);
+}
+
+/** Merge per-outlet availability from branch-products into product list. */
+export function applyBranchAvailability(
+  products: Product[],
+  branchProducts: BranchProduct[],
+  outletId: string
+): Product[] {
+  const unavailable = new Set(
+    branchProducts
+      .filter((bp) => !bp.isAvailable)
+      .map((bp) =>
+        typeof bp.product === "object" && bp.product !== null
+          ? String(bp.product.id)
+          : String(bp.product)
+      )
+  );
+  if (!unavailable.size) return products;
+  return products.map((p) => {
+    if (!unavailable.has(p.id)) return p;
+    const set = new Set(p.unavailableAt ?? []);
+    set.add(outletId);
+    return { ...p, unavailableAt: Array.from(set) };
+  });
+}
+
+/**
+ * Fetch products for a specific outlet directly from the branch-products
+ * collection. Only products linked to the outlet are returned, with their
+ * per-outlet availability applied.
+ */
+export async function getProductsForOutlet(outletId: string): Promise<Product[]> {
+  return tryApi(async () => {
+    const data = await apiFetch<PaginatedDocs<unknown>>(
+      `/api/branch-products?limit=500&depth=2&where[branch][equals]=${encodeURIComponent(
+        outletId
+      )}`
+    );
+    return data.docs.map((doc: any) => {
+      const productDoc =
+        typeof doc.product === "object" && doc.product !== null
+          ? doc.product
+          : doc;
+      const product = mapBackendProduct(productDoc);
+      if (doc.isAvailable === false) {
+        product.unavailableAt = [
+          ...(product.unavailableAt ?? []),
+          outletId,
+        ];
+      }
+      return product;
+    });
+  }, mockProducts);
+}
+
 export async function getTestimonials(): Promise<Testimonial[]> {
   return tryApi(async () => {
     const data = await apiFetch<PaginatedDocs<unknown>>(
@@ -153,6 +227,17 @@ export function isAvailableAt(product: Product, outletId?: string): boolean {
   return !product.unavailableAt?.includes(outletId);
 }
 
+/**
+ * Payload's Postgres adapter uses numeric serial IDs by default. Frontend
+ * IDs are always stringified (see mapBackendProduct/mapBackendOutlet), so
+ * relationship fields must be coerced back to numbers before submitting to
+ * the API, otherwise Payload's relationship validation rejects them.
+ */
+function toBackendId(id: string): string | number {
+  const n = Number(id);
+  return Number.isNaN(n) ? id : n;
+}
+
 export interface PlaceOrderInput {
   items: CartItem[];
   outletId: string;
@@ -163,6 +248,7 @@ export interface PlaceOrderInput {
   deliveryFee: number;
   total: number;
   user: User;
+  paymentMethod: PaymentMethod;
 }
 
 /** Create an order in the backend. Requires the customer to be logged in. */
@@ -170,6 +256,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<Order> {
   if (!API_ENABLED) {
     await delay(600);
     return {
+      id: `mock-${Date.now()}`,
       orderNumber: generateOrderNumber(),
       placedAt: new Date().toISOString(),
       ...input,
@@ -183,10 +270,10 @@ export async function placeOrder(input: PlaceOrderInput): Promise<Order> {
   }>("/api/orders", {
     method: "POST",
     body: JSON.stringify({
-      user: input.user.id,
+      user: toBackendId(input.user.id),
       guestEmail: input.guest.email,
       guestName: input.guest.fullName,
-      branch: input.outletId,
+      branch: toBackendId(input.outletId),
       shippingAddress: {
         recipientName: input.guest.fullName,
         phone: input.guest.phone,
@@ -195,10 +282,10 @@ export async function placeOrder(input: PlaceOrderInput): Promise<Order> {
         area: input.guest.area || "",
       },
       orderType: input.fulfilment,
-      paymentMethod: "cod",
-      paymentStatus: "unpaid",
+      paymentMethod: input.paymentMethod,
+      paymentStatus: input.paymentMethod === "cod" ? "unpaid" : "pending_verification",
       items: input.items.map((item) => ({
-        product: item.productId,
+        product: toBackendId(item.productId),
         productName: item.name,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
@@ -212,6 +299,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<Order> {
   });
 
   return {
+    id: order.id,
     orderNumber: order.orderNumber,
     items: input.items,
     outletId: input.outletId,
@@ -221,8 +309,30 @@ export async function placeOrder(input: PlaceOrderInput): Promise<Order> {
     subtotal: input.subtotal,
     deliveryFee: input.deliveryFee,
     total: input.total,
+    paymentMethod: input.paymentMethod,
     placedAt: order.createdAt || new Date().toISOString(),
   };
+}
+
+/**
+ * Record a manual Bangla QR payment submitted by the customer. Staff verify
+ * the transaction against the bank statement and mark it Success/Failed in
+ * the admin panel, which then updates the order automatically.
+ */
+export async function submitBanglaQrPayment(
+  order: Order,
+  transactionId: string
+): Promise<void> {
+  await apiFetch("/api/payments", {
+    method: "POST",
+    body: JSON.stringify({
+      order: toBackendId(order.id),
+      paymentMethod: "bangla_qr",
+      status: "pending",
+      amount: order.total,
+      transactionId,
+    }),
+  });
 }
 
 interface BackendOrder {

@@ -4,7 +4,13 @@ import { motion } from "framer-motion";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { getCategories, getProducts } from "@/lib/api";
+import {
+  getCategories,
+  getProducts,
+  getProductsForOutlet,
+  isAvailableAt,
+} from "@/lib/api";
+import { useOutlet } from "@/context/OutletContext";
 import ProductCard from "@/components/ProductCard";
 import type { CategorySlug, Product, Category } from "@/lib/types";
 
@@ -20,6 +26,7 @@ const sortOptions: { key: SortKey; label: string }[] = [
 export default function ShopClient() {
   const params = useSearchParams();
   const initialCategory = (params.get("category") as CategorySlug) || "all";
+  const { selectedOutlet } = useOutlet();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -30,18 +37,32 @@ export default function ShopClient() {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("popular");
 
+  // Fetch products and categories. When a (nearest) outlet is selected, load
+  // products directly from the branch-products endpoint so only items linked
+  // to that outlet are shown, with per-outlet availability applied.
   useEffect(() => {
     let mounted = true;
-    Promise.all([getProducts(), getCategories()]).then(([p, c]) => {
-      if (!mounted) return;
-      setProducts(p);
-      setCategories(c);
-      setLoading(false);
-    });
+    setLoading(true);
+    const productsPromise = selectedOutlet
+      ? getProductsForOutlet(selectedOutlet.id)
+      : getProducts();
+    Promise.all([productsPromise, getCategories()])
+      .then(([p, c]) => {
+        if (!mounted) return;
+        setProducts(p);
+        setCategories(c);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setLoading(false);
+      });
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [selectedOutlet]);
+
+  const outletId = selectedOutlet?.id;
 
   const filtered = useMemo(() => {
     let list = [...products];
@@ -67,8 +88,17 @@ export default function ShopClient() {
       default:
         list.sort((a, b) => b.reviewCount - a.reviewCount);
     }
+    // When an outlet is selected, show available items first while still
+    // letting customers see everything else.
+    if (outletId) {
+      list.sort((a, b) => {
+        const aAvail = isAvailableAt(a, outletId) ? 1 : 0;
+        const bAvail = isAvailableAt(b, outletId) ? 1 : 0;
+        return bAvail - aAvail;
+      });
+    }
     return list;
-  }, [category, query, sort, products]);
+  }, [category, query, sort, products, outletId]);
 
   const filters: { key: CategorySlug | "all"; label: string }[] = [
     { key: "all", label: "All" },
@@ -121,9 +151,17 @@ export default function ShopClient() {
         </div>
       </div>
 
-      <p className="mt-6 text-sm text-choco/50">
+      {selectedOutlet && (
+        <p className="mt-6 text-sm text-choco/60">
+          Showing bakes available from{" "}
+          <span className="font-medium text-choco">{selectedOutlet.name}</span>
+          {selectedOutlet.area && ` · ${selectedOutlet.area}`}
+           , Showing {filtered.length} item{filtered.length !== 1 && "s"}
+        </p>
+      )}
+      {/* <p className="mt-2 text-sm text-choco/50">
         Showing {filtered.length} item{filtered.length !== 1 && "s"}
-      </p>
+      </p> */}
 
       {loading ? (
         <div className="mt-16 text-center text-choco/60">Loading bakes...</div>

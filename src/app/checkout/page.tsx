@@ -4,15 +4,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowRight, MapPin, Store, Truck } from "lucide-react";
+import { ArrowRight, MapPin, QrCode, Store, Truck, Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { useOutlet } from "@/context/OutletContext";
 import { useAuth } from "@/context/AuthContext";
 import { DELIVERY_FEE } from "@/data/outlets";
 import { formatTaka } from "@/lib/format";
-import { placeOrder } from "@/lib/api";
-import type { FulfilmentType, GuestDetails } from "@/lib/types";
+import { placeOrder, submitBanglaQrPayment } from "@/lib/api";
+import type { FulfilmentType, GuestDetails, PaymentMethod } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 
 export default function CheckoutPage() {
@@ -22,7 +22,10 @@ export default function CheckoutPage() {
   const { user, openAuth } = useAuth();
 
   const [fulfilment, setFulfilment] = useState<FulfilmentType>("delivery");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod");
+  const [banglaQrRef, setBanglaQrRef] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
   const [guest, setGuest] = useState<GuestDetails>({
     fullName: "",
     phone: "",
@@ -55,26 +58,43 @@ export default function CheckoutPage() {
     selectedOutlet &&
     guest.fullName.trim() &&
     guest.phone.trim() &&
-    (fulfilment === "pickup" || guest.address?.trim());
+    (fulfilment === "pickup" || guest.address?.trim()) &&
+    (paymentMethod !== "bangla_qr" || banglaQrRef.trim());
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit || !selectedOutlet || !user) return;
     setSubmitting(true);
-    const order = await placeOrder({
-      items,
-      outletId: selectedOutlet.id,
-      outletName: selectedOutlet.name,
-      fulfilment,
-      guest,
-      subtotal,
-      deliveryFee,
-      total,
-      user,
-    });
-    sessionStorage.setItem("yummy.lastOrder", JSON.stringify(order));
-    clearCart();
-    router.push("/order-confirmation");
+    setPaymentError("");
+    try {
+      const order = await placeOrder({
+        items,
+        outletId: selectedOutlet.id,
+        outletName: selectedOutlet.name,
+        fulfilment,
+        guest,
+        subtotal,
+        deliveryFee,
+        total,
+        user,
+        paymentMethod,
+      });
+
+      if (paymentMethod === "bangla_qr") {
+        // Record the customer's submitted reference for manual verification
+        // by staff against the bank statement.
+        await submitBanglaQrPayment(order, banglaQrRef.trim());
+      }
+
+      sessionStorage.setItem("yummy.lastOrder", JSON.stringify(order));
+      clearCart();
+      router.push("/order-confirmation");
+    } catch (err) {
+      setPaymentError(
+        err instanceof Error ? err.message : "Something went wrong. Please try again."
+      );
+      setSubmitting(false);
+    }
   };
 
   if (items.length === 0) {
@@ -221,15 +241,82 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* Payment (stub) */}
+          {/* Payment */}
           <div className="rounded-3xl bg-white p-6 shadow-card">
             <h2 className="font-display text-xl text-choco">Payment</h2>
-            <p className="mt-2 text-sm text-choco/60">
-              Cash on delivery / pay at pickup. Online payment coming soon.
-            </p>
-            <div className="mt-4 rounded-2xl border border-dashed border-choco/20 bg-cream-50 px-4 py-3 text-sm text-choco/60">
-              Cash on {fulfilment === "pickup" ? "pickup" : "delivery"} selected.
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("cod")}
+                className={`flex flex-col items-start gap-1 rounded-2xl border p-4 text-left transition-colors ${
+                  paymentMethod === "cod"
+                    ? "border-caramel bg-cream-100"
+                    : "border-choco/15 hover:border-caramel"
+                }`}
+              >
+                <Wallet size={20} className="text-caramel-dark" />
+                <span className="font-medium text-choco">Cash on {fulfilment === "pickup" ? "pickup" : "delivery"}</span>
+                <span className="text-xs text-choco/55">Pay with cash</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("bangla_qr")}
+                className={`flex flex-col items-start gap-1 rounded-2xl border p-4 text-left transition-colors ${
+                  paymentMethod === "bangla_qr"
+                    ? "border-caramel bg-cream-100"
+                    : "border-choco/15 hover:border-caramel"
+                }`}
+              >
+                <QrCode size={20} className="text-caramel-dark" />
+                <span className="font-medium text-choco">Bangla QR</span>
+                <span className="text-xs text-choco/55">
+                  Scan &amp; pay via any banking app
+                </span>
+              </button>
             </div>
+
+            {paymentMethod === "bangla_qr" && (
+              <div className="mt-4 rounded-2xl border border-choco/15 bg-cream-50 p-4">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="relative h-96 w-96 shrink-0 overflow-hidden rounded-xl bg-white">
+                    <Image
+                      src="/payment/BanglaQR.jpeg"
+                      alt="Yummy Bakery Bangla QR code"
+                      fill
+                      sizes="384px"
+                      className="object-contain p-2"
+                    />
+                  </div>
+                  <div className="space-y-2 text-center">
+                    <p className="text-sm font-medium text-choco">
+                      Yummy Bakery · Al-Arafah Islami Bank PLC
+                    </p>
+                    <p className="text-xs text-choco/60">
+                      Scan the QR code with any mobile banking or banking app, pay the total amount, then enter your transaction reference number below.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <label className="mb-1.5 block text-sm font-medium text-choco">
+                    Transaction reference number *
+                  </label>
+                  <input
+                    type="text"
+                    value={banglaQrRef}
+                    onChange={(e) => setBanglaQrRef(e.target.value)}
+                    placeholder="e.g. reference/TXN number from your banking app"
+                    className="w-full rounded-2xl border border-choco/15 bg-white px-4 py-3 text-sm focus:border-caramel focus:outline-none"
+                  />
+                  <p className="mt-1.5 text-xs text-choco/50">
+                    We&apos;ll verify this against the bank statement and confirm your order shortly.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {paymentError && (
+              <p className="mt-3 text-sm text-berry">{paymentError}</p>
+            )}
           </div>
         </div>
 
@@ -273,7 +360,11 @@ export default function CheckoutPage() {
             whileTap={{ scale: 0.98 }}
             className="btn-accent mt-6 w-full justify-center"
           >
-            {submitting ? "Placing order…" : "Place order"}
+            {submitting
+              ? "Placing order…"
+              : paymentMethod === "bangla_qr"
+                ? "Confirm & submit reference"
+                : "Place order"}
             {!submitting && <ArrowRight size={18} />}
           </motion.button>
           {!selectedOutlet && (

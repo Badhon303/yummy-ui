@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { getOutlets } from "@/lib/api";
+import { findNearestOutlet, getCurrentPosition } from "@/lib/geo";
 import { outlets as mockOutlets } from "@/data/outlets";
 import type { Outlet } from "@/lib/types";
 
@@ -32,30 +33,50 @@ export function OutletProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+
+    const resolveOutlet = (data: Outlet[]) => {
+      if (!mounted) return;
+      setOutlets(data);
+      const stored =
+        typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
+      if (stored && data.some((o) => o.id === stored)) {
+        setSelectedId(stored);
+        setHydrated(true);
+        return;
+      }
+      if (data.length === 0) {
+        setHydrated(true);
+        return;
+      }
+      // First visit: try to auto-select the nearest outlet by geolocation.
+      getCurrentPosition()
+        .then((position) => {
+          if (!mounted) return;
+          const nearest = findNearestOutlet(
+            position.coords.latitude,
+            position.coords.longitude,
+            data
+          );
+          if (nearest) {
+            setSelectedId(nearest.id);
+            localStorage.setItem(STORAGE_KEY, nearest.id);
+          } else {
+            setPickerOpen(true);
+          }
+          setHydrated(true);
+        })
+        .catch(() => {
+          if (!mounted) return;
+          // Geolocation denied/unavailable: let the user pick manually.
+          setPickerOpen(true);
+          setHydrated(true);
+        });
+    };
+
     getOutlets()
-      .then((data) => {
-        if (!mounted) return;
-        setOutlets(data);
-        const stored =
-          typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
-        if (stored && data.some((o) => o.id === stored)) {
-          setSelectedId(stored);
-        } else if (data.length > 0) {
-          // First visit: prompt for an outlet
-          setPickerOpen(true);
-        }
-        setHydrated(true);
-      })
+      .then(resolveOutlet)
       .catch(() => {
-        setOutlets(mockOutlets);
-        const stored =
-          typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
-        if (stored && mockOutlets.some((o) => o.id === stored)) {
-          setSelectedId(stored);
-        } else if (mockOutlets.length > 0) {
-          setPickerOpen(true);
-        }
-        setHydrated(true);
+        resolveOutlet(mockOutlets);
       });
     return () => {
       mounted = false;

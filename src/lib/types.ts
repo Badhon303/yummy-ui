@@ -107,6 +107,13 @@ export interface ProfileUpdateInput {
 
 export type FulfilmentType = "delivery" | "pickup";
 
+/**
+ * "cod" = cash on delivery/pickup.
+ * "bangla_qr" = customer scans the merchant's Al-Arafah Islami Bank Bangla QR
+ * code and submits their transaction reference for manual verification.
+ */
+export type PaymentMethod = "cod" | "bangla_qr";
+
 export interface GuestDetails {
   fullName: string;
   phone: string;
@@ -117,6 +124,7 @@ export interface GuestDetails {
 }
 
 export interface Order {
+  id: string;
   orderNumber: string;
   items: CartItem[];
   outletId: string;
@@ -126,6 +134,7 @@ export interface Order {
   subtotal: number;
   deliveryFee: number;
   total: number;
+  paymentMethod: PaymentMethod;
   placedAt: string;
 }
 

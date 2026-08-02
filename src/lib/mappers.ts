@@ -19,7 +19,7 @@ const FRONTEND_CATEGORIES: CategorySlug[] = [
 
 export function resolveImageUrl(
   value: unknown,
-  fallback: string = "/products/placeholder.jpg"
+  fallback: string = "/products/placeholder.svg"
 ): string {
   if (!value) return fallback;
 
@@ -51,7 +51,7 @@ export function mapBackendCategory(doc: any): Category {
     slug: slug as CategorySlug,
     name: doc.name as string,
     tagline: (doc.description as string) || "",
-    image: resolveImageUrl(doc.image, "/products/placeholder.jpg"),
+    image: resolveImageUrl(doc.image, "/products/placeholder.svg"),
   };
 }
 
@@ -68,7 +68,7 @@ export function mapBackendProduct(doc: any): Product {
 
   const gallery: string[] = Array.isArray(rawGallery)
     ? rawGallery.map((item: any) =>
-        resolveImageUrl(item?.url || item, "/products/placeholder.jpg")
+        resolveImageUrl(item?.url || item, "/products/placeholder.svg")
       )
     : [];
 
@@ -88,7 +88,7 @@ export function mapBackendProduct(doc: any): Product {
     price: (doc.basePrice as number) ?? 0,
     shortDescription: (doc.shortDescription as string) || "",
     description: (doc.description as string) || "",
-    image: resolveImageUrl(rawImage, "/products/placeholder.jpg"),
+    image: resolveImageUrl(rawImage, "/products/placeholder.svg"),
     gallery,
     tags: Array.isArray(doc.tags)
       ? doc.tags.map((t: any) => t.tag || t)
@@ -121,7 +121,7 @@ export function mapBackendOutlet(doc: any): Outlet {
     lng: (doc.lng as number) ?? 0,
     image: resolveImageUrl(
       doc.image?.localImage || doc.image?.externalImage || doc.image,
-      "/products/placeholder.jpg"
+      "/products/placeholder.svg"
     ),
     supportsDelivery: doc.supportsDelivery !== false,
     supportsPickup: doc.supportsPickup !== false,
