@@ -11,7 +11,7 @@ import { useOutlet } from "@/context/OutletContext";
 import { useAuth } from "@/context/AuthContext";
 import { DELIVERY_FEE } from "@/data/outlets";
 import { formatTaka } from "@/lib/format";
-import { placeOrder, submitBanglaQrPayment, getProductsForOutlet, isAvailableAt } from "@/lib/api";
+import { placeOrder, getProductsForOutlet, isAvailableAt } from "@/lib/api";
 import type { FulfilmentType, GuestDetails, PaymentMethod, Product } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 
@@ -103,13 +103,8 @@ export default function CheckoutPage() {
         total,
         user: user ?? undefined,
         paymentMethod,
+        transactionId: paymentMethod === "bangla_qr" ? banglaQrRef.trim() : undefined,
       });
-
-      if (paymentMethod === "bangla_qr") {
-        // Record the customer's submitted reference for manual verification
-        // by staff against the bank statement.
-        await submitBanglaQrPayment(order, banglaQrRef.trim());
-      }
 
       sessionStorage.setItem("yummy.lastOrder", JSON.stringify(order));
       clearCart();

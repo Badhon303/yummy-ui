@@ -249,6 +249,7 @@ export interface PlaceOrderInput {
   total: number;
   user?: User;
   paymentMethod: PaymentMethod;
+  transactionId?: string;
 }
 
 /** Create an order in the backend for a signed-in customer or guest. */
@@ -283,6 +284,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<Order> {
       },
       orderType: input.fulfilment,
       paymentMethod: input.paymentMethod,
+      transactionId: input.transactionId,
       paymentStatus: input.paymentMethod === "cod" ? "unpaid" : "pending_verification",
       items: input.items.map((item) => ({
         product: toBackendId(item.productId),
