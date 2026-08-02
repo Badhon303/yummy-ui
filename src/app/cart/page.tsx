@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useOutlet } from "@/context/OutletContext";
-import { DELIVERY_FEE } from "@/data/outlets";
+import { DELIVERY_FEE } from "@/lib/constants";
 import { formatTaka } from "@/lib/format";
 import PageHeader from "@/components/PageHeader";
 

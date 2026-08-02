@@ -1,7 +1,5 @@
-import { products as mockProducts } from "@/data/products";
-import { categories as mockCategories } from "@/data/categories";
-import { outlets as mockOutlets, DELIVERY_FEE } from "@/data/outlets";
 import { testimonials as mockTestimonials } from "@/data/testimonials";
+import { DELIVERY_FEE } from "@/lib/constants";
 import type {
   Product,
   Category,
@@ -44,7 +42,7 @@ export async function getProducts(): Promise<Product[]> {
       "/api/products?limit=200&depth=2"
     );
     return data.docs.map(mapBackendProduct);
-  }, mockProducts);
+  }, []);
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | undefined> {
@@ -54,7 +52,7 @@ export async function getProductBySlug(slug: string): Promise<Product | undefine
     );
     const doc = data.docs[0];
     return doc ? mapBackendProduct(doc) : undefined;
-  }, mockProducts.find((p) => p.slug === slug));
+  }, undefined);
 }
 
 async function getCategoryIdBySlug(slug: string): Promise<string | undefined> {
@@ -74,7 +72,7 @@ export async function getProductsByCategory(category: string): Promise<Product[]
       )}`
     );
     return data.docs.map(mapBackendProduct);
-  }, mockProducts.filter((p) => p.category === category));
+  }, []);
 }
 
 export async function getBestsellers(): Promise<Product[]> {
@@ -83,7 +81,7 @@ export async function getBestsellers(): Promise<Product[]> {
       "/api/products?limit=20&depth=2&where[isBestseller][equals]=true"
     );
     return data.docs.map(mapBackendProduct);
-  }, mockProducts.filter((p) => p.isBestseller));
+  }, []);
 }
 
 export async function getNewArrivals(): Promise<Product[]> {
@@ -92,7 +90,7 @@ export async function getNewArrivals(): Promise<Product[]> {
       "/api/products?limit=20&depth=2&where[isNew][equals]=true"
     );
     return data.docs.map(mapBackendProduct);
-  }, mockProducts.filter((p) => p.isNew));
+  }, []);
 }
 
 export async function getRelatedProducts(
@@ -108,9 +106,7 @@ export async function getRelatedProducts(
       )}&where[and][1][id][not_equals]=${encodeURIComponent(product.id)}`
     );
     return data.docs.map(mapBackendProduct);
-  }, mockProducts
-    .filter((p) => p.category === product.category && p.id !== product.id)
-    .slice(0, limit));
+  }, []);
 }
 
 export async function getCategories(): Promise<Category[]> {
@@ -119,7 +115,7 @@ export async function getCategories(): Promise<Category[]> {
       "/api/categories?limit=100&depth=1"
     );
     return data.docs.map(mapBackendCategory);
-  }, mockCategories);
+  }, []);
 }
 
 export async function getOutlets(): Promise<Outlet[]> {
@@ -128,7 +124,7 @@ export async function getOutlets(): Promise<Outlet[]> {
       "/api/outlets?limit=100&depth=1"
     );
     return data.docs.map(mapBackendOutlet);
-  }, mockOutlets);
+  }, []);
 }
 
 export interface BranchProduct {
@@ -201,7 +197,7 @@ export async function getProductsForOutlet(outletId: string): Promise<Product[]>
       }
       return product;
     });
-  }, mockProducts);
+  }, []);
 }
 
 export async function getTestimonials(): Promise<Testimonial[]> {

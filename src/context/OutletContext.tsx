@@ -9,7 +9,6 @@ import {
 } from "react";
 import { getOutlets } from "@/lib/api";
 import { findNearestOutlet, getCurrentPosition } from "@/lib/geo";
-import { outlets as mockOutlets } from "@/data/outlets";
 import type { Outlet } from "@/lib/types";
 
 interface OutletContextValue {
@@ -76,7 +75,7 @@ export function OutletProvider({ children }: { children: React.ReactNode }) {
     getOutlets()
       .then(resolveOutlet)
       .catch(() => {
-        resolveOutlet(mockOutlets);
+        resolveOutlet([]);
       });
     return () => {
       mounted = false;

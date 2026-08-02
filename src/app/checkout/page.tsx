@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { useOutlet } from "@/context/OutletContext";
 import { useAuth } from "@/context/AuthContext";
-import { DELIVERY_FEE } from "@/data/outlets";
+import { DELIVERY_FEE } from "@/lib/constants";
 import { formatTaka } from "@/lib/format";
 import { placeOrder, getProductsForOutlet, isAvailableAt } from "@/lib/api";
 import type { FulfilmentType, GuestDetails, PaymentMethod, Product } from "@/lib/types";
