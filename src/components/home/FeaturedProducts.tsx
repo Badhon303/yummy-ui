@@ -1,11 +1,42 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { getBestsellers } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { getProductsForOutlet, isAvailableAt } from "@/lib/api";
+import { useOutlet } from "@/context/OutletContext";
 import ProductCard from "@/components/ProductCard";
 import SectionHeading from "@/components/ui/SectionHeading";
+import type { Product } from "@/lib/types";
 
-export default async function FeaturedProducts() {
-  const bestsellers = await getBestsellers();
+export default function FeaturedProducts() {
+  const { selectedOutlet } = useOutlet();
+  const [bestsellers, setBestsellers] = useState<Product[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    if (!selectedOutlet) {
+      setBestsellers([]);
+      return () => {
+        mounted = false;
+      };
+    }
+
+    getProductsForOutlet(selectedOutlet.id).then((products) => {
+      if (!mounted) return;
+      setBestsellers(
+        products.filter(
+          (product) =>
+            product.isBestseller && isAvailableAt(product, selectedOutlet.id)
+        )
+      );
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, [selectedOutlet]);
 
   return (
     <section className="section bg-cream-100">
@@ -19,17 +50,19 @@ export default async function FeaturedProducts() {
           />
           <Link
             href="/shop"
-            className="hidden items-center gap-1.5 text-sm font-semibold text-caramel-dark hover:gap-2.5 transition-all md:inline-flex"
+            className="hidden items-center gap-1.5 text-sm font-semibold text-caramel-dark transition-all hover:gap-2.5 md:inline-flex"
           >
             View all products <ArrowRight size={16} />
           </Link>
         </div>
 
-        <div className="mt-12 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 lg:gap-6">
-          {bestsellers.map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
-        </div>
+        {bestsellers.length > 0 && (
+          <div className="mt-12 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 lg:gap-6">
+            {bestsellers.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
 
         <div className="mt-10 text-center md:hidden">
           <Link href="/shop" className="btn-outline">
